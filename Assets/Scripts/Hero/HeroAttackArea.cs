@@ -1,22 +1,47 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class HeroAttackArea : MonoBehaviour
 {
-    [HideInInspector] public bool enteredArea;
-    [HideInInspector] public GameObject enemy;
+    private Collider2D attackAreaCollider;
+
+    private readonly List<IDamageableEnemy> colliderList = new List<IDamageableEnemy>();
+
+    private void Start()
+    {
+        attackAreaCollider = GetComponent<Collider2D>();
+        HeroKnight.TurnedAround += SwitchAttackAreaX;
+        HeroKnight.Attacked += Damage;
+    }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (!other.CompareTag("Enemy")) return;
-        enteredArea = true;
-        enemy = other.gameObject;
+        if (other.gameObject.TryGetComponent<IDamageableEnemy>(out var enemyComponent))
+        {
+            colliderList.Add(enemyComponent);
+        }
     }
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        if (!other.CompareTag("Enemy")) return;
-        enteredArea = false;
+        if (other.gameObject.TryGetComponent<IDamageableEnemy>(out var enemyComponent))
+        {
+            colliderList.Remove(enemyComponent);
+        }
+    }
+
+    private void SwitchAttackAreaX(int direction)
+    {
+        var offsetX = Math.Abs(attackAreaCollider.offset.x);
+        attackAreaCollider.offset = new Vector2(direction * offsetX, attackAreaCollider.offset.y);
+    }
+
+    private void Damage()
+    {
+        foreach (var enemy in colliderList)
+        {
+            enemy?.TakeDamage(HeroDamage.Damage);
+        }
     }
 }

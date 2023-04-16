@@ -1,141 +1,198 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using Unity.VisualScripting;
 using UnityEngine;
 
-public class EnemyMovement : MonoBehaviour
+public class EnemyMovement : MonoBehaviour, IDamageableEnemy
 {
     [SerializeField] private float speed;
-    [SerializeField] private float knockbackStrength;
     private Rigidbody2D body2d;
-    private Transform target;
     private bool enteredAreaVision;
     private bool enteredAreaAttack;
     private Animator animator;
     private EnemyVisionArea enemyVisionArea;
     private EnemyAttackArea enemyAttackArea;
-    private BoxCollider2D enemyAttackAreaCollider;
-    private float direction;
-    private const float attackDuration = 0.7f;
-    private const float damageTakenDuration = 0.25f;
-    private bool isAttacking;
-    private float attackCooldown;
-    private float damageTakenCooldown;
+    private EnemyHealth healthGameObject;
+    private BoxCollider2D enemyAttackBoxCollider;
     private SpriteRenderer spriteRenderer;
-    private SpriteRenderer spriteRenderer1;
-    private bool damageTaken;
+    private Coroutine followingCoroutine;
+    private Coroutine attackingCoroutine;
+    private GameObject sacredTree;
+    private Coroutine movingToTreeCoroutine;
     
-    private static readonly int AnimState = Animator.StringToHash("AnimState");
+    private IDamageable currentAttackTarget;
+    private const int damage = 5;
+    private const int attackCd = 1;
+    private bool died = false;
+    private readonly List<IDamageable> attackColliderList = new List<IDamageable>();
+    private readonly List<IDamageable> movingColliderList = new List<IDamageable>();
+
     private static readonly int Attack = Animator.StringToHash("Attack");
     private static readonly int Hurt = Animator.StringToHash("Hurt");
+    private static readonly int Walk = Animator.StringToHash("Walk");
+    private static readonly int Death = Animator.StringToHash("Death");
 
     // Start is called before the first frame update
     private void Start()
     {
-        spriteRenderer1 = GetComponent<SpriteRenderer>();
+        enemyVisionArea = transform.Find("VisionArea").GameObject().GetComponent<EnemyVisionArea>();
+        enemyVisionArea.MoveTowards += MoveTowards;
+        enemyVisionArea.StopFollowing += StopFollowing;
+        enemyAttackArea = transform.Find("AttackArea").GameObject().GetComponent<EnemyAttackArea>();
+        enemyAttackBoxCollider = enemyAttackArea.GetComponent<BoxCollider2D>();
+        enemyAttackArea.AttackTarget += AttackTarget;
+        enemyAttackArea.StopAttacking += StopAttacking;
+        healthGameObject = transform.Find("HpLine").GameObject().GetComponent<EnemyHealth>();
+
         spriteRenderer = GetComponent<SpriteRenderer>();
         body2d = GetComponent<Rigidbody2D>();
         body2d.constraints = RigidbodyConstraints2D.FreezeRotation;
-        target = GameObject.FindGameObjectWithTag("Player").GetComponent<Transform>();
-        enemyVisionArea = transform.Find("VisionArea").GetComponent<EnemyVisionArea>();
-        enemyAttackArea = transform.Find("AttackArea").GetComponent<EnemyAttackArea>();;
-        enemyAttackAreaCollider = enemyAttackArea.GetComponent<BoxCollider2D>();
         animator = GetComponent<Animator>();
+        
+        sacredTree = GameObject.Find("Yggdrasil tree");
+        movingToTreeCoroutine = StartCoroutine(MovingToTree());
     }
 
-    // Update is called once per frame
-    private void FixedUpdate()
+    private IEnumerator MovingToTree()
     {
-        enteredAreaVision = enemyVisionArea.enteredArea;
-        enteredAreaAttack = enemyAttackArea.enteredArea;
-        
-        AttackTimer();
-        
-        var targetPosition = target.position;
-        var currentPosition = transform.position;
-        var faceDirection = currentPosition.x - targetPosition.x;
-        SwitchDirection(faceDirection);
-        if(!damageTaken)
+        while (true)
         {
-            animator.SetBool(Hurt, false);
-            damageTakenCooldown = 0;
-            switch (enteredAreaVision)
+            var steps = Time.deltaTime * speed;
+            var position = transform.position;
+            position = Vector2.MoveTowards(position, new Vector2(sacredTree.transform.position.x, position.y), steps);
+            transform.position = position;
+            animator.SetBool(Walk, true);
+            spriteRenderer.flipX = false;
+            yield return null;
+        }
+    }
+    
+
+    private void MoveTowards(IDamageable component)
+    {
+        if(died || movingColliderList.Count > 0 || attackColliderList.Count > 0) return;
+        followingCoroutine = StartCoroutine(StartFollowing(component));
+        if (movingToTreeCoroutine != null)
+        {
+            StopCoroutine(movingToTreeCoroutine);    
+        }
+        movingColliderList.Add(component);
+    }
+
+    private IEnumerator StartFollowing(IDamageable component)
+    {
+        var targetGameObject = component.GetGameObject();
+        while (true)
+        {
+            var steps = Time.deltaTime * speed;
+            var currentPosition = transform.position;
+            var targetPosition = targetGameObject.transform.position;
+            var faceDirection =  currentPosition.x - targetPosition.x;
+            switch (faceDirection)
             {
-                case true when target:
-                    if (!enteredAreaAttack && !isAttacking)
-                    {
-                        Move(currentPosition, targetPosition);
-                    }
-                    else
-                    {
-                        animator.SetBool(Attack, true);
-                        isAttacking = true;
-                    }
-
+                case > 0:
+                {
+                    spriteRenderer.flipX = false;
+                    var offset = enemyAttackBoxCollider.offset;
+                    offset =
+                        new Vector2(Math.Abs(offset.x)*-1, offset.y);
+                    enemyAttackBoxCollider.offset = offset;
                     break;
-                case false:
-                    animator.SetInteger(AnimState, 0);
+                }
+                case < 0:
+                {
+                    spriteRenderer.flipX = true;
+                    var offset = enemyAttackBoxCollider.offset;
+                    offset =
+                        new Vector2(Math.Abs(offset.x*-1), offset.y);
+                    enemyAttackBoxCollider.offset = offset;
                     break;
+                }
             }
+            currentPosition = Vector2.MoveTowards(currentPosition, new Vector2(targetPosition.x, currentPosition.y), steps);
+            animator.SetBool(Walk, true);
+            transform.position = currentPosition;
+            yield return null;
         }
-        else
+    }
+
+    private void StopFollowing(IDamageable component)
+    {
+        if(died) return;
+        StopCoroutine(followingCoroutine);
+        movingToTreeCoroutine = StartCoroutine(MovingToTree());
+        movingColliderList.Remove(component);
+    }
+
+    private void AttackTarget(IDamageable component)
+    {
+        if(died || attackColliderList.Count > 0) return;
+        animator.SetBool(Walk, false);
+        StopCoroutine(followingCoroutine);
+        attackingCoroutine = StartCoroutine(StartAttacking(component));
+        currentAttackTarget = component;
+        animator.SetTrigger(Attack);
+        attackColliderList.Add(component);
+    }
+
+    private IEnumerator StartAttacking(IDamageable component)
+    {
+        var attackTimer = 0f;
+        while (true)
         {
-            animator.SetBool(Hurt, true);
-            var transform1 = transform;
-            var position = transform1.position;
-            position = new Vector2(position.x + direction * knockbackStrength*Time.deltaTime, position.y + knockbackStrength*Time.deltaTime);
-            transform1.position = position;
-            
-            DamageTakenTimer();
+            attackTimer += Time.deltaTime;
+            if (attackTimer >= attackCd)
+            {
+                currentAttackTarget = component;
+                animator.SetTrigger(Attack);
+                attackTimer = 0f;
+            }
+            yield return null;
         }
     }
 
-    private void Move(Vector2 currentPosition, Vector2 targetPosition)
+    private void StopAttacking(IDamageable component)
     {
-        currentPosition = Vector2.MoveTowards(currentPosition, new Vector2(targetPosition.x, currentPosition.y), speed * Time.deltaTime);
-        animator.SetInteger(AnimState, 1);
-        attackCooldown = 0;
-        animator.SetBool(Attack, false);
-        transform.position = currentPosition;
+        if(died) return;
+        attackColliderList.Remove(component);
+        movingColliderList.Remove(component);
+        MoveTowards(currentAttackTarget);
+        StopCoroutine(attackingCoroutine);
+    }
+    
+    public void TakeDamage(int value)
+    {
+        if(died) return;
+        animator.SetTrigger(Hurt);
+        if (!(healthGameObject.TakeDamage(value) <= 0)) return;
+        died = true;
+        animator.SetTrigger(Death);
+        StartCoroutine(CheckDeathAnimationFinished());
     }
 
-    private void SwitchDirection(float faceDirection)
+    private IEnumerator CheckDeathAnimationFinished()
     {
-        var offsetX = Math.Abs(enemyAttackAreaCollider.offset.x);
-        switch (faceDirection)
+        while (!animator.GetCurrentAnimatorStateInfo(0).IsName("Death"))
         {
-            case > 0:
-                direction = 1;
-                spriteRenderer.flipX = false;
-                enemyAttackAreaCollider.offset = new Vector2(-offsetX, enemyAttackAreaCollider.offset.y);
-                break;
-            case < 0:
-                direction = -1;
-                spriteRenderer1.flipX = true;
-                enemyAttackAreaCollider.offset = new Vector2(offsetX, enemyAttackAreaCollider.offset.y);
-                break;
+            yield return null;
         }
-    }
 
-    private void AttackTimer()
-    {
-        if (!isAttacking) return;
-        attackCooldown += Time.deltaTime;
-        if (attackCooldown >= attackDuration)
+        while (!(animator.GetCurrentAnimatorStateInfo(0).normalizedTime >=
+                 animator.GetCurrentAnimatorStateInfo(0).length))
         {
-            isAttacking = false;
+            yield return null;
         }
+        Destroy(gameObject);
     }
-
-    private void DamageTakenTimer()
+    
+    //Animation event
+    private void DealDamageIfTargetWithinRange()
     {
-        damageTakenCooldown += Time.deltaTime;
-        if (damageTakenCooldown >= damageTakenDuration)
+        if (attackColliderList.Count>0)
         {
-            damageTaken = false;
+            currentAttackTarget.TakeDamage(damage);
         }
-    }
-
-    public void DamageTaken()
-    {
-        damageTaken = true;
     }
 }

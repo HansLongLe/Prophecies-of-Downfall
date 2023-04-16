@@ -1,7 +1,6 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
+
 
 public class HeroParticles : MonoBehaviour
 {
@@ -9,30 +8,27 @@ public class HeroParticles : MonoBehaviour
     [SerializeField]
     private GameObject hero;
     private float particleDuration;
-    private bool cooldownStarted;
     private SpriteRenderer sprite;
     private Animator rollAnimator;
-    private float rollCountdown;
+    private float rollCountdown = 0.0f;
     private float particleCountdown;
-    private bool particleStarted = false;
     private float rollCooldown;
-    private HeroKnight heroKnight;
 
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
-        heroKnight = hero.GetComponent<HeroKnight>();
+        HeroKnight.Rolled += RollCooldownParticle;
         sprite = GetComponent<SpriteRenderer>();
         sprite.enabled = false;
         rollCooldown = hero.GetComponent<HeroKnight>().rollCooldown;
         rollAnimator = GetComponent<Animator>();
-        AnimationClip[] animationClips = GetComponent<Animator>().runtimeAnimatorController.animationClips;
-        foreach (var animation in animationClips)
+        var animationClips = GetComponent<Animator>().runtimeAnimatorController.animationClips;
+        foreach (var animationClip in animationClips)
         {
-            if (animation.name == "RollReady")
+            if (animationClip.name == "RollReady")
             {
-                particleDuration = animation.length + 0.015f;
+                particleDuration = animationClip.length + 0.015f;
             }
         }
     }
@@ -40,37 +36,43 @@ public class HeroParticles : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(hero)
+        //track player position
+        var position = hero.transform.position;
+        transform.position = new Vector2(position.x, position.y + 0.3f);
+    }
+
+    private void RollCooldownParticle()
+    {
+        StartCoroutine(RollParticleTimer());
+    }
+
+    private IEnumerator CoolDownTimer()
+    {
+        while (rollCountdown < rollCooldown)
         {
-            var canRoll = heroKnight.canRoll;
-            transform.position = new Vector2(hero.transform.position.x, hero.transform.position.y + 0.3f);
-            if(canRoll)
-            {
-                cooldownStarted = true;
-                rollCountdown = 0f;
-            }
-            if(cooldownStarted)
-            {
-                rollCountdown += Time.deltaTime;
-            }
-            if(rollCountdown >= rollCooldown)
-            {
-                rollCountdown = 0f;
-                particleCountdown = 0f;
-                cooldownStarted= false;
-                rollAnimator.Play("RollReady", -1, 0f);
-                particleStarted = true;
-                sprite.enabled = true;
-            }
-            if(particleStarted)
-            {
-                particleCountdown += Time.deltaTime;
-            }
-            if(particleCountdown >= particleDuration)
-            {
-                particleStarted = false;
-                sprite.enabled = false;
-            }
+            rollCountdown += Time.deltaTime;
+            yield return null;
+        }
+        if (rollCountdown >= rollCooldown)
+        {
+            rollCountdown = 0f;
+            rollAnimator.Play("RollReady", -1, 0f);
+            sprite.enabled = true;
         }
     }
+    private IEnumerator RollParticleTimer()
+    {
+        yield return StartCoroutine(CoolDownTimer());
+        while (particleCountdown < particleDuration)
+        {
+            particleCountdown += Time.deltaTime;
+            yield return null;
+        }
+        if (particleCountdown >= particleDuration)
+        {
+            sprite.enabled = false;
+            particleCountdown = 0f;
+        }
+    }
+    
 }

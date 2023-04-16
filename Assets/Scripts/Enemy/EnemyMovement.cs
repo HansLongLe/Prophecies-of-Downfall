@@ -126,8 +126,9 @@ public class EnemyMovement : MonoBehaviour, IDamageableEnemy
     {
         if(died) return;
         StopCoroutine(followingCoroutine);
-        movingToTreeCoroutine = StartCoroutine(MovingToTree());
         movingColliderList.Remove(component);
+        if(movingColliderList.Count > 0) return;
+        movingToTreeCoroutine = StartCoroutine(MovingToTree());
     }
 
     private void AttackTarget(IDamageable component)

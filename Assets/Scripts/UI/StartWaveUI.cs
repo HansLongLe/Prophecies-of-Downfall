@@ -11,6 +11,8 @@ public class StartWaveUI : MonoBehaviour
     private GameObject button;
     private GameObject dialogueText;
 
+    private bool waveStarted = false;
+
     public delegate void StartWaveUIWithoutArgs();
 
     public static event StartWaveUIWithoutArgs StartWaveEvent;
@@ -18,6 +20,8 @@ public class StartWaveUI : MonoBehaviour
     // Start is called before the first frame update
     private void Start()
     {
+        StartWave.WaveStarted += WaveStarted;
+        StartWave.WaveEnded += WaveEnded;
         buttonText = startWave.transform.Find("buttonText").GameObject();
         button = startWave.transform.Find("button").GameObject();
         dialogueText = startWave.transform.Find("dialogueText").GameObject();
@@ -28,7 +32,7 @@ public class StartWaveUI : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D col)
     {
-        if (!col.TryGetComponent<HeroKnight>(out var _)) return;
+        if (!col.TryGetComponent<HeroKnight>(out var _) || waveStarted) return;
         buttonText.SetActive(true);
         button.SetActive(true);
         dialogueText.SetActive(true);
@@ -36,7 +40,7 @@ public class StartWaveUI : MonoBehaviour
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        if (!other.TryGetComponent<HeroKnight>(out var _)) return;
+        if (!other.TryGetComponent<HeroKnight>(out var _) || waveStarted) return;
         buttonText.SetActive(false);
         button.SetActive(false);
         dialogueText.SetActive(false);
@@ -44,8 +48,20 @@ public class StartWaveUI : MonoBehaviour
 
     public void OnInteract(InputAction.CallbackContext value)
     {
-        if (!buttonText.activeSelf || !button.activeSelf) return;
-        if (!value.performed) return;
+        if (!buttonText.activeSelf || !button.activeSelf || waveStarted || !value.performed) return;
         StartWaveEvent?.Invoke();
+    }
+
+    private void WaveStarted()
+    {
+        waveStarted = true;
+        buttonText.SetActive(false);
+        button.SetActive(false);
+        dialogueText.SetActive(false);
+    }
+
+    private void WaveEnded()
+    {
+        waveStarted = false;
     }
 }

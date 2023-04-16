@@ -29,6 +29,10 @@ public class EnemyMovement : MonoBehaviour, IDamageableEnemy
     private readonly List<IDamageable> attackColliderList = new List<IDamageable>();
     private readonly List<IDamageable> movingColliderList = new List<IDamageable>();
 
+    public delegate void EnemyMovementWithGameObject(GameObject gameObject);
+
+    public static event EnemyMovementWithGameObject DiedEvent;
+
     private static readonly int Attack = Animator.StringToHash("Attack");
     private static readonly int Hurt = Animator.StringToHash("Hurt");
     private static readonly int Walk = Animator.StringToHash("Walk");
@@ -184,6 +188,7 @@ public class EnemyMovement : MonoBehaviour, IDamageableEnemy
         {
             yield return null;
         }
+        DiedEvent?.Invoke(gameObject);
         Destroy(gameObject);
     }
     

@@ -31,7 +31,15 @@ public class EnemyMovement : MonoBehaviour, IDamageableEnemy
 
     public delegate void EnemyMovementWithGameObject(GameObject gameObject);
 
+    public delegate void EnemyMovementWithoutArgs();
+
     public static event EnemyMovementWithGameObject DiedEvent;
+    public static event EnemyMovementWithoutArgs StartMoving;
+    public static event EnemyMovementWithoutArgs StopMoving;
+    public static event EnemyMovementWithoutArgs StartAttack;
+    public static event EnemyMovementWithoutArgs GettingHit;
+    public static event EnemyMovementWithoutArgs Dying;
+    
 
     private static readonly int Attack = Animator.StringToHash("Attack");
     private static readonly int Hurt = Animator.StringToHash("Hurt");
@@ -49,7 +57,6 @@ public class EnemyMovement : MonoBehaviour, IDamageableEnemy
         enemyAttackArea.AttackTarget += AttackTarget;
         enemyAttackArea.StopAttacking += StopAttacking;
         healthGameObject = transform.Find("HpLine").GameObject().GetComponent<EnemyHealth>();
-
         spriteRenderer = GetComponent<SpriteRenderer>();
         body2d = GetComponent<Rigidbody2D>();
         body2d.constraints = RigidbodyConstraints2D.FreezeRotation;
@@ -61,6 +68,8 @@ public class EnemyMovement : MonoBehaviour, IDamageableEnemy
 
     private IEnumerator MovingToTree()
     {
+        StartMoving?.Invoke();
+        //small delay
         while (true)
         {
             var steps = Time.deltaTime * speed;
@@ -76,45 +85,36 @@ public class EnemyMovement : MonoBehaviour, IDamageableEnemy
 
     private void MoveTowards(IDamageable component)
     {
-        if(died || movingColliderList.Count > 0 || attackColliderList.Count > 0) return;
-        followingCoroutine = StartCoroutine(StartFollowing(component));
-        if (movingToTreeCoroutine != null)
-        {
-            StopCoroutine(movingToTreeCoroutine);    
-        }
+        if(died || attackColliderList.Count > 0 || movingToTreeCoroutine == null) return;
         movingColliderList.Add(component);
+        if(movingColliderList.Count > 1) return;
+        StopCoroutine(movingToTreeCoroutine);
+        followingCoroutine = StartCoroutine(StartFollowing(component));
+        
     }
 
     private IEnumerator StartFollowing(IDamageable component)
     {
+        StartMoving?.Invoke();
         var targetGameObject = component.GetGameObject();
+        
+        //small delay
+        var timer = 0f;
+        const float timerDelay = 0.5f;
+        animator.SetBool(Walk, false);
+        ChangeDirection(targetGameObject);
+        while (timer < timerDelay)
+        {
+            timer += Time.deltaTime;
+            yield return null;
+        }
+        animator.SetBool(Walk, true);
         while (true)
         {
             var steps = Time.deltaTime * speed;
             var currentPosition = transform.position;
             var targetPosition = targetGameObject.transform.position;
-            var faceDirection =  currentPosition.x - targetPosition.x;
-            switch (faceDirection)
-            {
-                case > 0:
-                {
-                    spriteRenderer.flipX = false;
-                    var offset = enemyAttackBoxCollider.offset;
-                    offset =
-                        new Vector2(Math.Abs(offset.x)*-1, offset.y);
-                    enemyAttackBoxCollider.offset = offset;
-                    break;
-                }
-                case < 0:
-                {
-                    spriteRenderer.flipX = true;
-                    var offset = enemyAttackBoxCollider.offset;
-                    offset =
-                        new Vector2(Math.Abs(offset.x*-1), offset.y);
-                    enemyAttackBoxCollider.offset = offset;
-                    break;
-                }
-            }
+            ChangeDirection(targetGameObject);
             currentPosition = Vector2.MoveTowards(currentPosition, new Vector2(targetPosition.x, currentPosition.y), steps);
             animator.SetBool(Walk, true);
             transform.position = currentPosition;
@@ -122,18 +122,54 @@ public class EnemyMovement : MonoBehaviour, IDamageableEnemy
         }
     }
 
+    private void ChangeDirection(GameObject targetGameObject)
+    {
+        var currentPosition = transform.position;
+        var targetPosition = targetGameObject.transform.position;
+        var faceDirection =  currentPosition.x - targetPosition.x;
+        switch (faceDirection)
+        {
+            case > 0:
+            {
+                spriteRenderer.flipX = false;
+                var offset = enemyAttackBoxCollider.offset;
+                offset =
+                    new Vector2(Math.Abs(offset.x)*-1, offset.y);
+                enemyAttackBoxCollider.offset = offset;
+                break;
+            }
+            case < 0:
+            {
+                spriteRenderer.flipX = true;
+                var offset = enemyAttackBoxCollider.offset;
+                offset =
+                    new Vector2(Math.Abs(offset.x*-1), offset.y);
+                enemyAttackBoxCollider.offset = offset;
+                break;
+            }
+        }
+    }
+
     private void StopFollowing(IDamageable component)
     {
-        if(died) return;
+        if(died || followingCoroutine == null || attackColliderList.Count > 0) return;
+        StopMoving?.Invoke();
         StopCoroutine(followingCoroutine);
+        if (movingColliderList.Count > 1)
+        {
+            followingCoroutine = StartCoroutine(StartFollowing(movingColliderList[1]));
+        }
+        else
+        {
+            movingToTreeCoroutine = StartCoroutine(MovingToTree());
+        }
         movingColliderList.Remove(component);
-        if(movingColliderList.Count > 0) return;
-        movingToTreeCoroutine = StartCoroutine(MovingToTree());
     }
 
     private void AttackTarget(IDamageable component)
     {
-        if(died || attackColliderList.Count > 0) return;
+        if(died || attackColliderList.Count > 0 || followingCoroutine == null) return;
+        StopMoving?.Invoke();
         animator.SetBool(Walk, false);
         StopCoroutine(followingCoroutine);
         attackingCoroutine = StartCoroutine(StartAttacking(component));
@@ -160,7 +196,8 @@ public class EnemyMovement : MonoBehaviour, IDamageableEnemy
 
     private void StopAttacking(IDamageable component)
     {
-        if(died) return;
+        if(died || attackingCoroutine == null) return;
+        StopMoving?.Invoke();
         attackColliderList.Remove(component);
         movingColliderList.Remove(component);
         MoveTowards(currentAttackTarget);
@@ -170,10 +207,13 @@ public class EnemyMovement : MonoBehaviour, IDamageableEnemy
     public void TakeDamage(int value)
     {
         if(died) return;
+        StopMoving?.Invoke();
+        GettingHit?.Invoke();
         animator.SetTrigger(Hurt);
         if (!(healthGameObject.TakeDamage(value) <= 0)) return;
         died = true;
         animator.SetTrigger(Death);
+        Dying?.Invoke();
         StartCoroutine(CheckDeathAnimationFinished());
     }
 
@@ -196,6 +236,7 @@ public class EnemyMovement : MonoBehaviour, IDamageableEnemy
     //Animation event
     private void DealDamageIfTargetWithinRange()
     {
+        StartAttack?.Invoke();
         if (attackColliderList.Count>0)
         {
             currentAttackTarget.TakeDamage(damage);

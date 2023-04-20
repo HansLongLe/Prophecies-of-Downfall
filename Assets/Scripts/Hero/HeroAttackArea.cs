@@ -33,8 +33,12 @@ public class HeroAttackArea : MonoBehaviour
 
     private void SwitchAttackAreaX(int direction)
     {
-        var offsetX = Math.Abs(attackAreaCollider.offset.x);
-        attackAreaCollider.offset = new Vector2(direction * offsetX, attackAreaCollider.offset.y);
+        if (attackAreaCollider != null)
+        {
+            var offsetX = Math.Abs(attackAreaCollider.offset.x);
+            attackAreaCollider.offset = new Vector2(direction * offsetX, attackAreaCollider.offset.y);
+        }
+        
     }
 
     private void Damage()

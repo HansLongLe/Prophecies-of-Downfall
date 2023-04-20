@@ -24,7 +24,11 @@ public class HeroKnight : MonoBehaviour, IDamageable
     public delegate void HeroKnightFunctionWithoutArgs();
     public static event HeroKnightFunctionWithoutArgs Rolled;
     public static event HeroKnightFunctionWithoutArgs Attacked;
-
+    public static event HeroKnightFunctionWithoutArgs Moved;
+    public static event HeroKnightFunctionWithoutArgs StoppedMoving;
+    
+    public static event HeroKnightFunctionWithoutArgs StartedDefending;
+    public static event HeroKnightFunctionWithoutArgs GotHitWhileDefending;
     public delegate void HeroKnightFunctionWithInt(int number);
     public static event HeroKnightFunctionWithInt TurnedAround;
     public static event HeroKnightFunctionWithInt DamageTaken;
@@ -42,6 +46,7 @@ public class HeroKnight : MonoBehaviour, IDamageable
     private bool blocking;
     private Vector2 inputMovement;
     private bool isDead = false;
+    private bool isMoving = false;
 
     private static readonly int AnimState = Animator.StringToHash("AnimState");
     private static readonly int Grounded = Animator.StringToHash("Grounded");
@@ -89,7 +94,7 @@ public class HeroKnight : MonoBehaviour, IDamageable
 
     public void OnAttack(InputAction.CallbackContext value)
     {
-        if (!value.started || !(timeSinceAttack > 0.25f) || rolling || isDead) return;
+        if (!value.started || !(timeSinceAttack > 0.25f) || rolling || isDead || PausedMenu.menuOpened) return;
         currentAttack++;
 
         // Loop back to one after third attack
@@ -110,9 +115,10 @@ public class HeroKnight : MonoBehaviour, IDamageable
 
     public void OnBlock(InputAction.CallbackContext value)
     {
-        if(isDead) return;
+        if(isDead || PausedMenu.menuOpened) return;
         if (value.started && !rolling)
         {
+            StartedDefending?.Invoke();
             animator.SetTrigger(Block);
             animator.SetBool(IdleBlock, true);
             blocking = true;
@@ -126,7 +132,7 @@ public class HeroKnight : MonoBehaviour, IDamageable
 
     public void OnJump(InputAction.CallbackContext value)
     {
-        if (!grounded || rolling || isDead) return;
+        if (!grounded || rolling || isDead || PausedMenu.menuOpened) return;
         animator.SetTrigger(Jump);
         grounded = false;
         animator.SetBool(Grounded, grounded);
@@ -139,6 +145,7 @@ public class HeroKnight : MonoBehaviour, IDamageable
     {
         while (!grounded)
         {
+            StoppedMoving?.Invoke();
             //Check if character just landed on the ground
             if (groundSensor.State())
             {
@@ -166,11 +173,16 @@ public class HeroKnight : MonoBehaviour, IDamageable
             }
             yield return new WaitForFixedUpdate();
         }
+
+        if (isMoving)
+        {
+            Moved?.Invoke();
+        }
     }
 
     public void OnRoll(InputAction.CallbackContext value)
     {
-        if (!canRoll || isWallSliding || isDead) return; 
+        if (!canRoll || isWallSliding || isDead || PausedMenu.menuOpened) return; 
         rollCurrentTime = 0;
         animator.SetTrigger(Roll);
         Rolled?.Invoke();
@@ -189,6 +201,7 @@ public class HeroKnight : MonoBehaviour, IDamageable
                 body2d.velocity = new Vector2(facingDirection * rollForce, body2d.velocity.y);
                 yield return new WaitForFixedUpdate();
             }
+
             rolling = false;
             rollCurrentTime += Time.deltaTime;
             yield return new WaitForFixedUpdate();
@@ -199,7 +212,7 @@ public class HeroKnight : MonoBehaviour, IDamageable
 
     public void OnMovement(InputAction.CallbackContext value)
     {
-        if(isDead) return;
+        if(isDead || PausedMenu.menuOpened) return;
         inputMovement = value.ReadValue<Vector2>();
         var moving = value.phase;
 
@@ -223,23 +236,32 @@ public class HeroKnight : MonoBehaviour, IDamageable
 
     private IEnumerator Move(InputActionPhase moving)
     {
+        Moved?.Invoke();
+        isMoving = true;
         while (moving == InputActionPhase.Performed && !blocking)
         {
             body2d.velocity = new Vector2(inputMovement.x * speed, body2d.velocity.y);
             yield return new WaitForFixedUpdate();
         }
+        isMoving = false;
+        StoppedMoving?.Invoke();
         animator.SetInteger(AnimState, 0);
     }
 
     private void PlayerDied()
     {
+        if (animator == null) return;
         animator.SetTrigger(Death);
         isDead = true;
     }
 
     public void TakeDamage(int amount)
     {
-        if(isDead || blocking || rolling) return;
+        if (blocking)
+        {
+            GotHitWhileDefending?.Invoke();
+        }
+        if(isDead || blocking || rolling || PausedMenu.menuOpened) return;
         animator.SetTrigger(Hurt);
         DamageTaken?.Invoke(amount);
     }

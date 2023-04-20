@@ -14,6 +14,9 @@ public class HeroParticles : MonoBehaviour
     private float particleCountdown;
     private float rollCooldown;
 
+    public delegate void HeroParticlesWithoutArgs();
+    public static event HeroParticlesWithoutArgs RollCooldownReady;
+    
 
     // Start is called before the first frame update
     private void Start()
@@ -43,7 +46,10 @@ public class HeroParticles : MonoBehaviour
 
     private void RollCooldownParticle()
     {
-        StartCoroutine(RollParticleTimer());
+        if (this != null)
+        {
+            StartCoroutine(RollParticleTimer());
+        }
     }
 
     private IEnumerator CoolDownTimer()
@@ -53,12 +59,12 @@ public class HeroParticles : MonoBehaviour
             rollCountdown += Time.deltaTime;
             yield return null;
         }
-        if (rollCountdown >= rollCooldown)
-        {
-            rollCountdown = 0f;
-            rollAnimator.Play("RollReady", -1, 0f);
-            sprite.enabled = true;
-        }
+
+        if (!(rollCountdown >= rollCooldown)) yield break;
+        rollCountdown = 0f;
+        rollAnimator.Play("RollReady", -1, 0f);
+        RollCooldownReady?.Invoke();
+        sprite.enabled = true;
     }
     private IEnumerator RollParticleTimer()
     {

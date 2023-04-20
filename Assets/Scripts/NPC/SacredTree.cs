@@ -13,7 +13,7 @@ public class SacredTree : MonoBehaviour, IDamageable
 
     private const float effectDuration = 0.1f; 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
     }

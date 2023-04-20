@@ -5,7 +5,6 @@ using UnityEngine.UI;
 
 public class WaveCounter : MonoBehaviour
 {
-    [SerializeField] private int maxWaves = 10;
     public static int currentWave = 0;
     private Text waveText;
     
@@ -19,6 +18,7 @@ public class WaveCounter : MonoBehaviour
 
     private void NextWave()
     {
+        if (waveText == null) return;
         currentWave++;
         waveText.text = currentWave.ToString();
     }

@@ -19,6 +19,7 @@ public class PlayerHealth : MonoBehaviour
 
     private void DamageTaken(int amount)
     {
+        if(this == null) return;
         var transform1 = transform;
         if (transform1.localScale.x > 0)
         {

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
 
@@ -14,7 +15,7 @@ public enum DayCycles
 public class DayNightSystem2D : MonoBehaviour
 {
     [Header("Controllers")]
-    
+
     [SerializeField] private Light2D globalLight;
 
     [SerializeField] private float cycleCurrentTime = 0;
@@ -36,8 +37,10 @@ public class DayNightSystem2D : MonoBehaviour
     
     [SerializeField] private Color midnight; // Eg: 00:00 at 06:00
     
-    public delegate void Light();
-    public static event Light Lighted; 
+    public delegate void DayNightSystem2DWithoutArgs();
+    public static event DayNightSystem2DWithoutArgs Lighted;
+    public static event DayNightSystem2DWithoutArgs ChangePlaylistToNight;
+    public static event DayNightSystem2DWithoutArgs ChangePlaylistToNormal;
     
     private void Start() 
     {
@@ -73,6 +76,15 @@ public class DayNightSystem2D : MonoBehaviour
              DayCycles.Midnight => Color.Lerp(midnight, day, percent),
              _ => globalLight.color
          };
+         switch (dayCycle)
+         {
+             case DayCycles.Night or DayCycles.Midnight:
+                 ChangePlaylistToNight?.Invoke();
+                 break;
+             case DayCycles.Day or DayCycles.Sunrise or DayCycles.Sunset:
+                 ChangePlaylistToNormal?.Invoke();
+                 break;
+         }
      }
 
      private void LightsSwitched()

@@ -17,12 +17,11 @@ public class SacredTreeHealth : MonoBehaviour
 
     private void TakenDamage(int amount)
     {
+        if (this == null) return;
         var transform1 = transform;
-        if (transform1.localScale.x > 0)
-        {
-            x = (float)amount / 500 * localScale.x;
-            transform1.localScale = new Vector3(transform1.localScale.x - x, localScale.y, localScale.z);    
-        }
+        if (!(transform1.localScale.x > 0)) return;
+        x = (float)amount / 500 * localScale.x;
+        transform1.localScale = new Vector3(transform1.localScale.x - x, localScale.y, localScale.z);
     }
 
 }

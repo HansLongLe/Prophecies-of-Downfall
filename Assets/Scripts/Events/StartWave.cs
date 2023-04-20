@@ -7,7 +7,7 @@ public class StartWave : MonoBehaviour
 
     [SerializeField] private GameObject enemyPrefab;
 
-    private List<GameObject> enemies = new List<GameObject>();
+    private readonly List<GameObject> enemies = new List<GameObject>();
 
     public delegate void StartWaveWithoutArgs();
 
@@ -15,9 +15,9 @@ public class StartWave : MonoBehaviour
     public static event StartWaveWithoutArgs WaveEnded;
 
     private const float spawnDelay = 2f;
-    private int enemiesPerWave;
+    private int enemiesPerWave = 3;
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         StartWaveUI.StartWaveEvent += SpawnEnemies;
         EnemyMovement.DiedEvent += EnemyDied;
@@ -25,8 +25,13 @@ public class StartWave : MonoBehaviour
 
     private void SpawnEnemies()
     {
+        if (this == null) return;
+        if (WaveCounter.currentWave != 0)
+        {
+            enemiesPerWave *= WaveCounter.currentWave;
+        }
+
         WaveStarted?.Invoke();
-        enemiesPerWave += 3 * WaveCounter.currentWave;
         StartCoroutine(DelaySpawn());
     }
 
@@ -49,9 +54,8 @@ public class StartWave : MonoBehaviour
     private void EnemyDied(GameObject enemyObject)
     {
         enemies.Remove(enemyObject);
-        if (enemies.Count == 0)
-        {
-            WaveEnded?.Invoke();
-        }
+        if (enemies.Count != 0) return;
+        enemiesPerWave = 3;
+        WaveEnded?.Invoke();
     }
 }

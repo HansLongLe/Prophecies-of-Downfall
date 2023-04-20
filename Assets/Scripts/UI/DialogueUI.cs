@@ -11,7 +11,11 @@ public class DialogueUI : MonoBehaviour
 {
 
     [SerializeField] private GameObject dialogue;
-    [SerializeField] private string[] texts; 
+    [SerializeField] private string[] texts;
+
+    public delegate void DialogueUIWithoutArgs();
+
+    public static event DialogueUIWithoutArgs Interact;
 
     private GameObject dialogueText;
     private Text currentDialogueText;
@@ -52,10 +56,11 @@ public class DialogueUI : MonoBehaviour
 
     public void OnInteract(InputAction.CallbackContext value)
     {
-        if (!buttonText.activeSelf || !button.activeSelf) return;
+        if (!buttonText.activeSelf || !button.activeSelf || PausedMenu.menuOpened) return;
         if (!value.performed) return;
         dialogueText.SetActive(true);
         dialogueWindow.SetActive(true);
+        Interact?.Invoke();
         if (textIndex >= texts.Length) return; 
         currentDialogueText.text = texts[textIndex++];
 

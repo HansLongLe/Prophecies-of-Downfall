@@ -598,3 +598,4 @@ Assets/Prefab/PF[[:space:]]Village[[:space:]]Props[[:space:]]-[[:space:]]Wood[[:
 Assets/GUI_Parts/Icons.meta filter=lfs diff=lfs merge=lfs -text
 Assets/Package[[:space:]]manager/Fantasy[[:space:]]Wooden[[:space:]]GUI[[:space:]][[:space:]]Free filter=lfs diff=lfs merge=lfs -text
 Assets/Prefab/PF[[:space:]]Village[[:space:]]Props[[:space:]]-[[:space:]]Wine[[:space:]]Bottle.prefab filter=lfs diff=lfs merge=lfs -text
+Game/** filter=lfs diff=lfs merge=lfs -text

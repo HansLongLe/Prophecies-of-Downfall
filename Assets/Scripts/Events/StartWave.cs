@@ -26,7 +26,11 @@ public class StartWave : MonoBehaviour
     private void SpawnEnemies()
     {
         if (this == null) return;
-        if (WaveCounter.currentWave != 0)
+        if (WaveCounter.currentWave == 0)
+        {
+            enemiesPerWave = 2;
+        }
+        else
         {
             enemiesPerWave *= WaveCounter.currentWave;
         }

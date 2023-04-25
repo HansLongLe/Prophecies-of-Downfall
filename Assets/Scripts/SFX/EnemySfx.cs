@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -76,5 +77,16 @@ public class EnemySfx : MonoBehaviour
         audioSource.PlayOneShot(dyingSound);
     }
 
-
+    private void OnDestroy()
+    {
+        MainMenu.SfxChanged -= VolumeChange;
+        PausedMenu.SfxChanged -= VolumeChange;
+        PausedMenu.MenuOpened -= PauseWalkingSound;
+        PausedMenu.MenuClosed -= ResumeWalkingSound;
+        EnemyMovement.Dying -= PlayDyingSound;
+        EnemyMovement.StartMoving -= PlayWalkingSound;
+        EnemyMovement.StopMoving -= StopWalkingSound;
+        EnemyMovement.StartAttack -= PlayAttackSound;
+        EnemyMovement.GettingHit -= PlayGettingHitSound;
+    }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,12 +8,11 @@ public class PlayUIChange : MonoBehaviour
     [SerializeField] private AudioClip buttonClick;
     private AudioSource audioSource;
     
+    
     // Start is called before the first frame update
     private void Start()
     {
         audioSource = GetComponent<AudioSource>();
-        audioSource.Stop();
-        audioSource.clip = buttonClick;
         var volume = PlayerPrefs.GetFloat("SfxVolume");
         audioSource.volume = volume;
         MainMenu.SfxChanged += VolumeChanged;
@@ -29,7 +29,15 @@ public class PlayUIChange : MonoBehaviour
 
     private void PlaySound()
     {
-        audioSource.Play();
+        audioSource.PlayOneShot(buttonClick);
     }
-    
+
+    private void OnDestroy()
+    {
+        MainMenu.SfxChanged -= VolumeChanged;
+        PausedMenu.SfxChanged -= VolumeChanged;
+        MainMenu.PlaySfx -= PlaySound;
+        PausedMenu.PlaySfx -= PlaySound;
+        DialogueUI.Interact -= PlaySound;
+    }
 }

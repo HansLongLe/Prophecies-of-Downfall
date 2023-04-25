@@ -26,11 +26,14 @@ public class PausedMenu : MonoBehaviour
 
     public static event PausedMenuWithoutArgs MenuOpened;
     public static event PausedMenuWithoutArgs MenuClosed;
+    public static event PausedMenuWithoutArgs ReturnedToTitleScreen;
 
     public static bool menuOpened = false;
 
     private void Start()
     {
+        BackgroundMusicSliderChange.SliderMoved += MusicBackgroundChange;
+        SfxSliderChange.SliderMoved += SfxChange;
         var backgroundVolume = PlayerPrefs.GetFloat("MusicBackgroundVolume");
         var sfxVolume = PlayerPrefs.GetFloat("SfxVolume");
         var screen = PlayerPrefs.GetInt("FullScreenMode");
@@ -77,18 +80,18 @@ public class PausedMenu : MonoBehaviour
         
     }
 
-    public void MusicBackgroundChange(Slider slider)
+    private void MusicBackgroundChange(float value)
     {
         PlaySfx?.Invoke();
-        BackgroundMusicChanged?.Invoke(slider.value);
-        PlayerPrefs.SetFloat("MusicBackgroundVolume", slider.value);
+        BackgroundMusicChanged?.Invoke(value);
+        PlayerPrefs.SetFloat("MusicBackgroundVolume", value);
     }
     
-    public void SfxChange(Slider slider)
+    private void SfxChange(float value)
     {
         PlaySfx?.Invoke();
-        SfxChanged?.Invoke(slider.value);
-        PlayerPrefs.SetFloat("SfxVolume", slider.value);
+        SfxChanged?.Invoke(value);
+        PlayerPrefs.SetFloat("SfxVolume", value);
     }
 
     public void OpenCloseMenu(InputAction.CallbackContext value)
@@ -126,7 +129,9 @@ public class PausedMenu : MonoBehaviour
     public void ReturnToTitleScreen()
     {
         PlaySfx?.Invoke();
+        WaveCounter.currentWave = 0;
         ResumeGame();
+        ReturnedToTitleScreen?.Invoke();
         SceneManager.LoadScene("Main Menu");
     }
 

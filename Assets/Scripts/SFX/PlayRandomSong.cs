@@ -29,6 +29,7 @@ public class PlayRandomSong : MonoBehaviour
              PausedMenu.BackgroundMusicChanged += VolumeChanged;
              MainMenu.BackgroundMusicChanged += VolumeChanged;
              MainMenu.NewGameStarted += ChangeAudioClipListToNormal;
+             PausedMenu.ReturnedToTitleScreen += ChangeAudioClipListToMenu;
              StartWaveUI.ChangePlaylist += ChangeAudioClipListToAction;
              DayNightSystem2D.ChangePlaylistToNight += ChangeAudioClipListToNight;
              DayNightSystem2D.ChangePlaylistToNormal += ChangeAudioClipListToNormal;
@@ -84,6 +85,12 @@ public class PlayRandomSong : MonoBehaviour
              StartRandomAudio();
          }
 
+         private void ChangeAudioClipListToMenu()
+         {
+             currentPlayList = menuPlayList;
+             StartRandomAudio();
+         }
+
          private void WaveEnded()
          {
              waveInProgress = false;
@@ -96,5 +103,16 @@ public class PlayRandomSong : MonoBehaviour
                  ChangeAudioClipListToNight();
              }
          }
-    
+
+         private void OnDestroy()
+         {
+             PausedMenu.BackgroundMusicChanged -= VolumeChanged;
+             MainMenu.BackgroundMusicChanged -= VolumeChanged;
+             MainMenu.NewGameStarted -= ChangeAudioClipListToNormal;
+             PausedMenu.ReturnedToTitleScreen += ChangeAudioClipListToMenu;
+             StartWaveUI.ChangePlaylist -= ChangeAudioClipListToAction;
+             DayNightSystem2D.ChangePlaylistToNight -= ChangeAudioClipListToNight;
+             DayNightSystem2D.ChangePlaylistToNormal -= ChangeAudioClipListToNormal;
+             StartWave.WaveEnded -= WaveEnded;
+         }
 }

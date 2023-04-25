@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
@@ -29,6 +30,8 @@ public class MainMenu : MonoBehaviour
 
     private void Start()
     {
+        BackgroundMusicSliderChange.SliderMoved += MusicBackgroundChange;
+        SfxSliderChange.SliderMoved += SfxChange;
         var backgroundVolume = PlayerPrefs.GetFloat("MusicBackgroundVolume");
         var sfxVolume = PlayerPrefs.GetFloat("SfxVolume");
         var screen = PlayerPrefs.GetInt("FullScreenMode");
@@ -81,18 +84,18 @@ public class MainMenu : MonoBehaviour
         
     }
 
-    public void MusicBackgroundChange(Slider slider)
+    private void MusicBackgroundChange(float value)
     {
         PlaySfx?.Invoke();
-        BackgroundMusicChanged?.Invoke(slider.value);
-        PlayerPrefs.SetFloat("MusicBackgroundVolume", slider.value);
+        BackgroundMusicChanged?.Invoke(value);
+        PlayerPrefs.SetFloat("MusicBackgroundVolume", value);
     }
     
-    public void SfxChange(Slider slider)
+    private void SfxChange(float value)
     {
         PlaySfx?.Invoke();
-        SfxChanged?.Invoke(slider.value);
-        PlayerPrefs.SetFloat("SfxVolume", slider.value);
+        SfxChanged?.Invoke(value);
+        PlayerPrefs.SetFloat("SfxVolume", value);
     }
     
     public void ReturnToMainMenu()
@@ -101,4 +104,5 @@ public class MainMenu : MonoBehaviour
         settingsMenu.SetActive(false);
         menu.SetActive(true);
     }
+    
 }

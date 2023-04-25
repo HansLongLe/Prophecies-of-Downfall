@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -17,6 +18,7 @@ public class PlayerSfx : MonoBehaviour
     [SerializeField] private AudioClip dyingSound;
 
     private AudioSource audioSource;
+    private AudioSource walkingAudioSource;
 
     private bool wasMoving;
     
@@ -27,6 +29,9 @@ public class PlayerSfx : MonoBehaviour
         var sfxVolume = PlayerPrefs.GetFloat("SfxVolume");
         var volume = PlayerPrefs.HasKey("SfxVolume") ? sfxVolume : 0.5f;
         audioSource.volume = volume;
+        
+        walkingAudioSource = gameObject.AddComponent(typeof(AudioSource)) as AudioSource;
+        if (walkingAudioSource != null) walkingAudioSource.volume = volume;
 
         MainMenu.SfxChanged += SfxChanged;
         PausedMenu.SfxChanged += SfxChanged;
@@ -46,6 +51,7 @@ public class PlayerSfx : MonoBehaviour
     private void SfxChanged(float changeVolume)
     {
         audioSource.volume = changeVolume;
+        walkingAudioSource.volume = changeVolume;
     }
 
     private void PlayAttackSound()
@@ -61,25 +67,25 @@ public class PlayerSfx : MonoBehaviour
     private void PlayWalkSound()
     {
         wasMoving = true;
-        audioSource.PlayOneShot(walkSound);
+        walkingAudioSource.PlayOneShot(walkSound);
     }
 
     private void StopWalkSound()
     {
         wasMoving = false;
-        audioSource.Stop();
+        walkingAudioSource.Stop();
     }
     
     private void PauseWalkSound()
     {
-        audioSource.Stop();
+        walkingAudioSource.Stop();
     }
 
     private void ResumeWalkSound()
     {
         if (wasMoving)
         {
-            audioSource.PlayOneShot(walkSound);
+            walkingAudioSource.PlayOneShot(walkSound);
         }
     }
 
@@ -107,5 +113,21 @@ public class PlayerSfx : MonoBehaviour
     {
         audioSource.PlayOneShot(dyingSound);
     }
-    
+
+    private void OnDestroy()
+    {
+        MainMenu.SfxChanged -= SfxChanged;
+        PausedMenu.SfxChanged -= SfxChanged;
+        PausedMenu.MenuOpened -= PauseWalkSound;
+        PausedMenu.MenuClosed -= ResumeWalkSound;
+        HeroKnight.Attacked -= PlayAttackSound;
+        HeroKnight.DamageTaken -= PlayGettingHitSound;
+        HeroKnight.Rolled -= PlayRollSound;
+        HeroKnight.Moved -= PlayWalkSound;
+        HeroKnight.StoppedMoving -= StopWalkSound;
+        HeroKnight.StartedDefending -= PlayRaiseShieldSound;
+        HeroKnight.GotHitWhileDefending -= PlayGotHitWhileDefendingSound;
+        HeroParticles.RollCooldownReady -= PlayRollCooldownReadySound;
+        PlayerHealth.ZeroHealth -= PlayDyingSound;
+    }
 }

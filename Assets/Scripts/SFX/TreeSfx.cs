@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -11,7 +13,7 @@ public class TreeSfx : MonoBehaviour
 
     private float volume;
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         audioSource = GetComponent<AudioSource>();
         audioSource.clip = gettingDamageSound;
@@ -32,5 +34,12 @@ public class TreeSfx : MonoBehaviour
     private void PlayGettingHitSound(int _)
     {
         audioSource.PlayOneShot(gettingDamageSound);
+    }
+
+    private void OnDestroy()
+    {
+        MainMenu.SfxChanged -= ChangeVolume;
+        PausedMenu.SfxChanged -= ChangeVolume;
+        SacredTree.TakenDamage -= PlayGettingHitSound;
     }
 }

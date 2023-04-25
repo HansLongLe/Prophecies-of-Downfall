@@ -4,10 +4,14 @@ using UnityEngine;
 
 public class DontDestroyOnLoad : MonoBehaviour
 {
+    private static DontDestroyOnLoad instance;
     // Start is called before the first frame update
     private void Awake()
     {
-        DontDestroyOnLoad(this);
+        if (instance != null) return;
+        instance = this;
+        DontDestroyOnLoad(instance);
+
     }
     
 }

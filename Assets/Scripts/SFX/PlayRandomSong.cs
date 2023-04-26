@@ -40,7 +40,10 @@ public class PlayRandomSong : MonoBehaviour
          private void StartRandomAudio()
          {
              var randomIndex = Random.Range(0, currentPlayList.Count - 1);
-             StartCoroutine(AudioPlaying(randomIndex));
+             if (this != null)
+             {
+                 StartCoroutine(AudioPlaying(randomIndex));
+             }
          }
      
          private IEnumerator AudioPlaying(int index)
@@ -114,5 +117,6 @@ public class PlayRandomSong : MonoBehaviour
              DayNightSystem2D.ChangePlaylistToNight -= ChangeAudioClipListToNight;
              DayNightSystem2D.ChangePlaylistToNormal -= ChangeAudioClipListToNormal;
              StartWave.WaveEnded -= WaveEnded;
+             
          }
 }

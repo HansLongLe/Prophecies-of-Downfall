@@ -101,7 +101,7 @@ Project Link: [https://github.com/HansLongLe/Prophecies-of-Downfall](https://git
 
 
 
-### Resources
+## Resources
 
 * [Music package 1](https://assetstore.unity.com/packages/audio/music/medieval-music-pack-vol-2-233785)
 * [Music package 2](https://assetstore.unity.com/packages/audio/music/orchestral/free-orchestral-music-pack-189885)

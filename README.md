@@ -59,6 +59,9 @@ This project has been created as part of the Via study programme in the 6th seme
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
+## Game demonstration
+
+[![Video](https://img.youtube.com/vi/lmYDM8b4fPM/0.jpg)](https://www.youtube.com/watch?v=lmYDM8b4fPM)
 
 ### Built With
 
